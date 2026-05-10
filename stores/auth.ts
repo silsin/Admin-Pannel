@@ -3,9 +3,10 @@ import { defineStore } from 'pinia'
 export interface User {
   id: string
   username: string
-  role: 'admin' | 'viewer'
+  role: 'admin' | 'agent'
   email?: string
   lastLogin?: string
+  agentId?: string   // set when role === 'agent'
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -16,12 +17,13 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAdmin: (state) => state.user?.role === 'admin',
+    isAdmin:  (state) => state.user?.role === 'admin',
+    isAgent:  (state) => state.user?.role === 'agent',
   },
 
   actions: {
     async login(username: string, password: string) {
-      // Mock login - replace with real API call
+      // Admin login
       if (username === 'admin' && password === 'admin') {
         const mockUser: User = {
           id: '1',
@@ -30,17 +32,50 @@ export const useAuthStore = defineStore('auth', {
           email: 'admin@vpnpanel.local',
           lastLogin: new Date().toISOString(),
         }
-        this.user = mockUser
-        this.token = 'mock-jwt-token-' + Date.now()
-        this.isAuthenticated = true
-
-        if (process.client) {
-          localStorage.setItem('vpn_token', this.token)
-          localStorage.setItem('vpn_user', JSON.stringify(mockUser))
-        }
+        this._setSession(mockUser)
         return { success: true }
       }
+
+      // Agent login — check against agents store
+      // We do a lazy import to avoid circular deps at module load time
+      const agentsStore = useAgentsStore()
+      if (agentsStore.agents.length === 0) {
+        await agentsStore.fetchAgents()
+      }
+
+      const agent = agentsStore.agents.find(
+        a => a.username === username && a.password === password
+      )
+
+      if (agent) {
+        if (agent.status === 'suspended') {
+          return { success: false, message: 'Your account has been suspended.' }
+        }
+        const agentUser: User = {
+          id: agent.id,
+          username: agent.username,
+          role: 'agent',
+          email: agent.email,
+          lastLogin: new Date().toISOString(),
+          agentId: agent.id,
+        }
+        await agentsStore.updateAgent(agent.id, { lastLogin: new Date().toISOString() })
+        this._setSession(agentUser)
+        return { success: true }
+      }
+
       return { success: false, message: 'Invalid credentials' }
+    },
+
+    _setSession(user: User) {
+      this.user = user
+      this.token = 'mock-jwt-token-' + Date.now()
+      this.isAuthenticated = true
+
+      if (process.client) {
+        localStorage.setItem('vpn_token', this.token)
+        localStorage.setItem('vpn_user', JSON.stringify(user))
+      }
     },
 
     logout() {
@@ -57,17 +92,16 @@ export const useAuthStore = defineStore('auth', {
     restoreSession() {
       if (process.client) {
         const token = localStorage.getItem('vpn_token')
-        const user = localStorage.getItem('vpn_user')
+        const user  = localStorage.getItem('vpn_user')
         if (token && user) {
           this.token = token
-          this.user = JSON.parse(user)
+          this.user  = JSON.parse(user)
           this.isAuthenticated = true
         }
       }
     },
 
     async changePassword(currentPassword: string, newPassword: string) {
-      // Mock - replace with real API
       if (currentPassword === 'admin') {
         return { success: true }
       }

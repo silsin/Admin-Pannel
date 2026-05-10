@@ -93,13 +93,16 @@
 
   .label { @apply block text-sm font-medium text-dark-300 mb-1.5; }
 
-  .badge        { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium; }
-  .badge-green  { @apply badge bg-emerald-500/20 text-emerald-400; }
-  .badge-red    { @apply badge bg-red-500/20 text-red-400; }
-  .badge-yellow { @apply badge bg-yellow-500/20 text-yellow-400; }
-  .badge-blue   { @apply badge bg-blue-500/20 text-blue-400; }
-  .badge-purple { @apply badge bg-purple-500/20 text-purple-400; }
-  .badge-gray   { @apply badge bg-dark-700 text-dark-400; }
+  .badge         { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium; }
+  .badge-green   { @apply badge bg-emerald-500/20 text-emerald-400; }
+  .badge-red     { @apply badge bg-red-500/20 text-red-400; }
+  .badge-yellow  { @apply badge bg-yellow-500/20 text-yellow-400; }
+  .badge-blue    { @apply badge bg-blue-500/20 text-blue-400; }
+  .badge-purple  { @apply badge bg-purple-500/20 text-purple-400; }
+  .badge-gray    { @apply badge bg-dark-700 text-dark-400; }
+  /* semantic aliases */
+  .badge-success { @apply badge bg-emerald-500/20 text-emerald-400 capitalize; }
+  .badge-danger  { @apply badge bg-red-500/20    text-red-400    capitalize; }
 
   .table-wrapper { @apply overflow-x-auto rounded-xl border border-dark-700; }
   .table         { @apply w-full text-sm; }
@@ -135,9 +138,20 @@
            flex items-center justify-center p-4;
   }
 
+  /* alias used by newer pages */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50
+           flex items-center justify-center p-4;
+  }
+
   .modal {
     @apply bg-dark-900 border border-dark-700 rounded-2xl w-full max-w-lg
            shadow-2xl animate-slide-in;
+  }
+
+  /* alias for .modal used by newer pages */
+  .modal-box {
+    @apply bg-dark-900 border border-dark-700 rounded-2xl shadow-2xl p-6;
   }
 
   .modal-header {

@@ -83,7 +83,7 @@
               <input type="checkbox" class="rounded" :checked="allSelected" @change="toggleAll" />
             </th>
             <th>{{ $t('common.name') }}</th>
-            <th>{{ $t('common.protocol') }}</th>
+            <th>{{ $t('clients.protocols') }}</th>
             <th>{{ $t('common.status') }}</th>
             <th>{{ $t('clients.ipAddress') }}</th>
             <th>{{ $t('clients.dataUsed') }}</th>
@@ -99,87 +99,141 @@
           <tr v-else-if="!filteredClients.length">
             <td colspan="9" class="text-center py-12 text-dark-500">{{ $t('common.noData') }}</td>
           </tr>
-          <tr v-for="client in filteredClients" :key="client.id">
-            <td>
-              <input type="checkbox" class="rounded" :value="client.id" v-model="selected" />
-            </td>
-            <td>
-              <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-full bg-primary-600/20 flex items-center justify-center text-xs font-bold text-primary-400 flex-shrink-0">
-                  {{ client.name[0] }}
-                </div>
-                <div class="min-w-0">
-                  <p class="font-medium text-dark-200 truncate max-w-[120px]">{{ client.name }}</p>
-                  <p class="text-xs text-dark-500 truncate max-w-[120px]">{{ client.email }}</p>
-                </div>
-              </div>
-            </td>
-            <td><span :class="fmt.protocolBadgeClass(client.protocol)">{{ client.protocol }}</span></td>
-            <td>
-              <div class="flex items-center gap-1.5">
-                <span :class="['status-dot', client.connectedSince ? 'online' : 'offline']" />
-                <span :class="fmt.statusBadgeClass(client.status)">{{ client.status }}</span>
-              </div>
-            </td>
-            <td class="font-mono text-xs text-dark-400" dir="ltr">{{ client.ipAddress || '—' }}</td>
-            <td>
-              <div>
-                <p class="text-sm">{{ fmt.formatBytes(client.dataUsed) }}</p>
-                <div v-if="client.dataLimit" class="mt-1">
-                  <div class="progress-bar w-20">
-                    <div class="progress-fill bg-primary-500"
-                      :style="{ width: fmt.percentOf(client.dataUsed, client.dataLimit) + '%' }" />
+
+          <template v-for="client in filteredClients" :key="client.id">
+            <!-- Main row -->
+            <tr :class="expandedRows.includes(client.id) ? 'bg-dark-800/60' : ''">
+              <td>
+                <input type="checkbox" class="rounded" :value="client.id" v-model="selected" />
+              </td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-full bg-primary-600/20 flex items-center justify-center text-xs font-bold text-primary-400 flex-shrink-0">
+                    {{ client.name[0] }}
                   </div>
-                  <p class="text-xs text-dark-500 mt-0.5">
-                    {{ fmt.percentOf(client.dataUsed, client.dataLimit) }}% {{ $t('common.of') ?? 'of' }} {{ fmt.formatBytes(client.dataLimit) }}
-                  </p>
+                  <div class="min-w-0">
+                    <p class="font-medium text-dark-200 truncate max-w-[120px]">{{ client.name }}</p>
+                    <p class="text-xs text-dark-500 truncate max-w-[120px]">{{ client.email }}</p>
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td>
-              <span v-if="client.expiresAt"
-                :class="isExpiringSoon(client.expiresAt) ? 'text-yellow-400' : 'text-dark-400'"
-                class="text-xs">
-                {{ fmt.formatDate(client.expiresAt) }}
-              </span>
-              <span v-else class="text-xs text-dark-500">{{ $t('common.never') }}</span>
-            </td>
-            <td class="text-dark-400 text-xs">
-              <span v-if="client.connectedSince" class="text-emerald-400">
-                {{ $t('clients.connectedFor', { duration: fmt.formatDuration(client.connectedSince) }) }}
-              </span>
-              <span v-else>{{ fmt.formatRelative(client.lastSeen) }}</span>
-            </td>
-            <td>
-              <div class="flex items-center justify-end gap-1">
-                <button @click="viewClient(client)" class="btn-ghost btn-sm p-1.5" :title="$t('common.view')">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                  </svg>
-                </button>
-                <button @click="editClient(client)" class="btn-ghost btn-sm p-1.5" :title="$t('common.edit')">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button @click="vpn.toggleClientStatus(client.id)" class="btn-ghost btn-sm p-1.5"
-                  :title="client.status === 'active' ? $t('common.disable') : $t('common.enable')">
-                  <svg v-if="client.status === 'active'" class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                  </svg>
-                  <svg v-else class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
-                <button @click="confirmDelete(client)" class="btn-ghost btn-sm p-1.5 text-red-400 hover:text-red-300" :title="$t('common.delete')">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
+              </td>
+              <!-- Multi-protocol badges -->
+              <td>
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="p in client.protocols" :key="p" :class="fmt.protocolBadgeClass(p)">{{ p }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="flex items-center gap-1.5">
+                  <span :class="['status-dot', client.connectedSince ? 'online' : 'offline']" />
+                  <span :class="fmt.statusBadgeClass(client.status)">{{ client.status }}</span>
+                </div>
+              </td>
+              <td class="font-mono text-xs text-dark-400" dir="ltr">{{ client.ipAddress || '—' }}</td>
+              <td>
+                <div>
+                  <p class="text-sm">{{ fmt.formatBytes(client.dataUsed) }}</p>
+                  <div v-if="client.dataLimit" class="mt-1">
+                    <div class="progress-bar w-20">
+                      <div class="progress-fill bg-primary-500"
+                        :style="{ width: fmt.percentOf(client.dataUsed, client.dataLimit) + '%' }" />
+                    </div>
+                    <p class="text-xs text-dark-500 mt-0.5">
+                      {{ fmt.percentOf(client.dataUsed, client.dataLimit) }}% of {{ fmt.formatBytes(client.dataLimit) }}
+                    </p>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span v-if="client.expiresAt"
+                  :class="isExpiringSoon(client.expiresAt) ? 'text-yellow-400' : 'text-dark-400'"
+                  class="text-xs">
+                  {{ fmt.formatDate(client.expiresAt) }}
+                </span>
+                <span v-else class="text-xs text-dark-500">{{ $t('common.never') }}</span>
+              </td>
+              <td class="text-dark-400 text-xs">
+                <span v-if="client.connectedSince" class="text-emerald-400">
+                  {{ $t('clients.connectedFor', { duration: fmt.formatDuration(client.connectedSince) }) }}
+                </span>
+                <span v-else>{{ fmt.formatRelative(client.lastSeen) }}</span>
+              </td>
+              <td>
+                <div class="flex items-center justify-end gap-1">
+                  <!-- Expand configs -->
+                  <button @click="toggleExpand(client.id)"
+                    class="btn-ghost btn-sm p-1.5"
+                    :class="expandedRows.includes(client.id) ? 'text-primary-400' : ''"
+                    :title="$t('clients.showConfigs')">
+                    <svg class="w-4 h-4 transition-transform duration-200"
+                      :class="expandedRows.includes(client.id) ? 'rotate-180' : ''"
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <button @click="viewClient(client)" class="btn-ghost btn-sm p-1.5" :title="$t('common.view')">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                  <button @click="editClient(client)" class="btn-ghost btn-sm p-1.5" :title="$t('common.edit')">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button @click="vpn.toggleClientStatus(client.id)" class="btn-ghost btn-sm p-1.5"
+                    :title="client.status === 'active' ? $t('common.disable') : $t('common.enable')">
+                    <svg v-if="client.status === 'active'" class="w-4 h-4 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                    <svg v-else class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  <button @click="confirmDelete(client)" class="btn-ghost btn-sm p-1.5 text-red-400 hover:text-red-300" :title="$t('common.delete')">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Expandable config row -->
+            <Transition name="expand-row">
+              <tr v-if="expandedRows.includes(client.id)" class="bg-dark-800/30">
+                <td colspan="9" class="px-4 py-3">
+                  <div class="flex flex-wrap gap-2 items-center">
+                    <span class="text-xs text-dark-500 me-1">{{ $t('clients.downloadConfig') }}:</span>
+                    <button
+                      v-for="p in client.protocols" :key="p"
+                      @click="downloadClientConfig(client, p)"
+                      :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all hover:scale-105',
+                        fmt.protocolBadgeClass(p).replace('badge','').trim(),
+                        'border-dark-600 hover:border-current bg-dark-800 hover:bg-dark-750']"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      {{ p }}
+                      <span class="text-dark-500">.{{ configExt(p) }}</span>
+                    </button>
+
+                    <!-- Quick send -->
+                    <div class="ms-auto flex items-center gap-2">
+                      <button @click="viewClient(client)" class="btn-ghost btn-sm text-xs gap-1.5 text-primary-400">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        {{ $t('clients.sendCredentials') }}
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </Transition>
+          </template>
         </tbody>
       </table>
     </div>
@@ -206,7 +260,7 @@
 </template>
 
 <script setup lang="ts">
-import type { VpnClient } from '~/stores/vpn'
+import type { VpnClient, Protocol } from '~/stores/vpn'
 definePageMeta({ middleware: 'auth' })
 
 const vpn = useVpnStore()
@@ -223,7 +277,9 @@ const showAddModal = ref(false)
 const editingClient = ref<VpnClient | null>(null)
 const viewingClient = ref<VpnClient | null>(null)
 const deletingClient = ref<VpnClient | null>(null)
+const expandedRows = ref<string[]>([])
 
+// ─── Filtering ────────────────────────────────────────────────────────────
 const filteredClients = computed(() => {
   let list = [...vpn.clients]
   if (search.value) {
@@ -234,7 +290,7 @@ const filteredClients = computed(() => {
       c.ipAddress?.includes(q)
     )
   }
-  if (protocolFilter.value !== 'all') list = list.filter(c => c.protocol === protocolFilter.value)
+  if (protocolFilter.value !== 'all') list = list.filter(c => c.protocols.includes(protocolFilter.value as Protocol))
   if (statusFilter.value !== 'all') list = list.filter(c => c.status === statusFilter.value)
   list.sort((a, b) => {
     if (sortBy.value === 'name') return a.name.localeCompare(b.name)
@@ -259,6 +315,32 @@ function isExpiringSoon(date: string) {
   return new Date(date).getTime() - Date.now() < 7 * 86400000
 }
 
+// ─── Row expand ───────────────────────────────────────────────────────────
+function toggleExpand(id: string) {
+  const idx = expandedRows.value.indexOf(id)
+  if (idx === -1) expandedRows.value.push(id)
+  else expandedRows.value.splice(idx, 1)
+}
+
+// ─── Config download ──────────────────────────────────────────────────────
+function configExt(p: Protocol) {
+  return p === 'wireguard' ? 'conf' : p === 'openvpn' ? 'ovpn' : 'json'
+}
+
+function downloadClientConfig(client: VpnClient, p: Protocol) {
+  const cfg = client.configs[p]
+  if (!cfg) return
+  const blob = new Blob([cfg], { type: 'text/plain' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${client.name}-${p}.${configExt(p)}`
+  a.click()
+  URL.revokeObjectURL(url)
+  notif.success(t('clients.configDownloaded'), `${client.name} · ${p}.${configExt(p)}`)
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────
 function viewClient(c: VpnClient)    { viewingClient.value = c }
 function editClient(c: VpnClient)    { editingClient.value = c }
 function confirmDelete(c: VpnClient) { deletingClient.value = c }
@@ -300,3 +382,12 @@ function onClientSaved() {
   notif.success(t('common.save'), t('clients.saved'))
 }
 </script>
+
+<style scoped>
+.expand-row-enter-active, .expand-row-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+.expand-row-enter-from, .expand-row-leave-to { opacity: 0; }
+.expand-row-enter-to, .expand-row-leave-from  { opacity: 1; }
+</style>

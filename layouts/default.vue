@@ -23,10 +23,25 @@
         <transition name="fade">
           <div v-if="sidebarOpen" class="overflow-hidden">
             <p class="text-sm font-bold text-dark-100 whitespace-nowrap">{{ $t('auth.title') }}</p>
-            <p class="text-xs text-dark-500 whitespace-nowrap">Management Console</p>
+            <p class="text-xs whitespace-nowrap"
+              :class="auth.isAgent ? 'text-violet-400' : 'text-dark-500'">
+              {{ auth.isAgent ? $t('nav.agentConsole') : 'Management Console' }}
+            </p>
           </div>
         </transition>
       </div>
+
+      <!-- Agent wallet badge (shown when agent + sidebar open) -->
+      <transition name="fade">
+        <div v-if="sidebarOpen && auth.isAgent && myAgent" class="mx-3 mt-3 p-3 rounded-lg bg-violet-600/10 border border-violet-600/20">
+          <p class="text-xs text-dark-500 mb-1">{{ $t('agent.walletRemaining') }}</p>
+          <p class="text-base font-bold text-emerald-400">{{ walletRemaining }} GB</p>
+          <div class="progress-bar mt-1.5">
+            <div class="progress-fill bg-emerald-500" :style="{ width: walletPct + '%' }" />
+          </div>
+          <p class="text-xs text-dark-500 mt-1">{{ walletPct }}% {{ $t('agent.used') }}</p>
+        </div>
+      </transition>
 
       <!-- Nav -->
       <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1">
@@ -41,7 +56,7 @@
             v-else
             :to="item.to"
             class="nav-link group relative"
-            :class="{ active: route.path === item.to || (item.to !== '/' && route.path.startsWith(item.to)) }"
+            :class="{ active: route.path === item.to || (item.to !== '/' && item.to !== '/agent' && route.path.startsWith(item.to)) || (item.to === '/agent' && route.path === '/agent') }"
             @click="mobileOpen = false"
           >
             <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
@@ -80,13 +95,17 @@
         </button>
 
         <NuxtLink to="/settings/profile" class="nav-link group relative" @click="mobileOpen = false">
-          <div class="w-5 h-5 rounded-full bg-primary-600 flex items-center justify-center text-xs text-white font-bold flex-shrink-0">
+          <div class="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white font-bold flex-shrink-0"
+            :class="auth.isAgent ? 'bg-violet-600' : 'bg-primary-600'">
             {{ auth.user?.username?.[0]?.toUpperCase() }}
           </div>
           <transition name="fade">
             <div v-if="sidebarOpen" class="overflow-hidden">
               <p class="text-sm font-medium text-dark-200 whitespace-nowrap">{{ auth.user?.username }}</p>
-              <p class="text-xs text-dark-500 whitespace-nowrap capitalize">{{ auth.user?.role }}</p>
+              <p class="text-xs whitespace-nowrap capitalize"
+                :class="auth.isAgent ? 'text-violet-400' : 'text-dark-500'">
+                {{ auth.user?.role }}
+              </p>
             </div>
           </transition>
         </NuxtLink>
@@ -113,8 +132,15 @@
           <p class="text-xs text-dark-500 hidden sm:block">{{ currentTime }}</p>
         </div>
 
-        <!-- Server status -->
-        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-dark-800 rounded-lg">
+        <!-- Role badge -->
+        <div v-if="auth.isAgent"
+          class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-violet-600/10 border border-violet-600/30 rounded-lg">
+          <span class="w-2 h-2 bg-violet-400 rounded-full" />
+          <span class="text-xs text-violet-300">{{ $t('nav.agentMode') }}</span>
+        </div>
+
+        <!-- Server status (admin only) -->
+        <div v-else class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-dark-800 rounded-lg">
           <span class="status-dot online" />
           <span class="text-xs text-dark-300">{{ $t('common.serverOnline') }}</span>
         </div>
@@ -157,13 +183,14 @@
 import {
   HomeIcon, UsersIcon, ServerIcon, ChartBarIcon,
   Cog6ToothIcon, DocumentTextIcon, KeyIcon,
-  ArrowPathIcon, GlobeAltIcon,
+  ArrowPathIcon, GlobeAltIcon, UserGroupIcon,
 } from '@heroicons/vue/24/outline'
 
 defineOptions({ middleware: 'auth' })
 
 const route = useRoute()
 const auth = useAuthStore()
+const agentStore = useAgentsStore()
 const notifStore = useNotificationStore()
 const vpnStore = useVpnStore()
 const { t, isRTL } = useLocale()
@@ -172,25 +199,52 @@ const sidebarOpen = ref(true)
 const mobileOpen = ref(false)
 const currentTime = ref('')
 
-const navItems = computed(() => [
-  { to: '/',              label: t('nav.dashboard'),    icon: HomeIcon },
-  { section: t('nav.management') },
-  { to: '/clients',       label: t('nav.clients'),      icon: UsersIcon,       badge: vpnStore.onlineClients.length || undefined },
-  { to: '/servers',       label: t('nav.servers'),      icon: ServerIcon },
-  { to: '/inbounds',      label: t('nav.inbounds'),     icon: GlobeAltIcon },
-  { section: t('nav.monitoring') },
-  { to: '/traffic',       label: t('nav.traffic'),      icon: ChartBarIcon },
-  { to: '/logs',          label: t('nav.logs'),         icon: DocumentTextIcon },
-  { section: t('nav.system') },
-  { to: '/certificates',  label: t('nav.certificates'), icon: KeyIcon },
-  { to: '/backup',        label: t('nav.backup'),       icon: ArrowPathIcon },
-  { to: '/settings',      label: t('nav.settings'),     icon: Cog6ToothIcon },
-])
+// ─── Agent wallet info ────────────────────────────────────────────────────
+const myAgent = computed(() =>
+  agentStore.agents.find(a => a.id === auth.user?.agentId)
+)
+const walletRemaining = computed(() =>
+  (myAgent.value?.walletBalance ?? 0) - (myAgent.value?.walletUsed ?? 0)
+)
+const walletPct = computed(() => {
+  if (!myAgent.value?.walletBalance) return 0
+  return Math.min(100, Math.round((myAgent.value.walletUsed / myAgent.value.walletBalance) * 100))
+})
+
+// ─── Role-based nav ───────────────────────────────────────────────────────
+const navItems = computed(() => {
+  if (auth.isAgent) {
+    return [
+      { to: '/agent', label: t('agent.dashboard'), icon: HomeIcon },
+      { section: t('nav.management') },
+      { to: '/settings/profile', label: t('nav.settings'), icon: Cog6ToothIcon },
+    ]
+  }
+
+  // Admin nav
+  return [
+    { to: '/', label: t('nav.dashboard'), icon: HomeIcon },
+    { section: t('nav.management') },
+    { to: '/clients',  label: t('nav.clients'),  icon: UsersIcon,      badge: vpnStore.onlineClients.length || undefined },
+    { to: '/agents',   label: t('nav.agents'),   icon: UserGroupIcon },
+    { to: '/servers',  label: t('nav.servers'),  icon: ServerIcon },
+    { to: '/inbounds', label: t('nav.inbounds'), icon: GlobeAltIcon },
+    { section: t('nav.monitoring') },
+    { to: '/traffic',  label: t('nav.traffic'),  icon: ChartBarIcon },
+    { to: '/logs',     label: t('nav.logs'),     icon: DocumentTextIcon },
+    { section: t('nav.system') },
+    { to: '/certificates', label: t('nav.certificates'), icon: KeyIcon },
+    { to: '/backup',       label: t('nav.backup'),       icon: ArrowPathIcon },
+    { to: '/settings',     label: t('nav.settings'),     icon: Cog6ToothIcon },
+  ]
+})
 
 const pageTitle = computed(() => {
   const map: Record<string, string> = {
     '/':                  t('dashboard.title'),
+    '/agent':             t('agent.dashboard'),
     '/clients':           t('clients.title'),
+    '/agents':            t('agents.title'),
     '/servers':           t('servers.title'),
     '/inbounds':          t('inbounds.title'),
     '/traffic':           t('traffic.title'),
@@ -205,11 +259,16 @@ const pageTitle = computed(() => {
 
 function toggleSidebar() { sidebarOpen.value = !sidebarOpen.value }
 
-onMounted(() => {
-  vpnStore.fetchStats()
-  vpnStore.fetchClients()
-  vpnStore.fetchServers()
-  vpnStore.startStatsPolling()
+onMounted(async () => {
+  if (auth.isAgent) {
+    await agentStore.fetchAgents()
+    await vpnStore.fetchClients()
+  } else {
+    vpnStore.fetchStats()
+    vpnStore.fetchClients()
+    vpnStore.fetchServers()
+    vpnStore.startStatsPolling()
+  }
 
   const updateTime = () => {
     currentTime.value = new Date().toLocaleString(

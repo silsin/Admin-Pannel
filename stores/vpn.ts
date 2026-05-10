@@ -5,7 +5,12 @@ export type Protocol = 'openvpn' | 'wireguard' | 'vmess' | 'vless' | 'trojan' | 
 export interface VpnClient {
   id: string
   name: string
+  // primary protocol (first in the list, kept for backward compat with table display)
   protocol: Protocol
+  // all assigned protocols
+  protocols: Protocol[]
+  // per-protocol configs
+  configs: Partial<Record<Protocol, string>>
   status: 'active' | 'inactive' | 'expired' | 'disabled'
   ipAddress?: string
   allowedIPs?: string
@@ -13,15 +18,16 @@ export interface VpnClient {
   privateKey?: string
   uuid?: string
   email?: string
+  telegram?: string           // NEW: telegram username for sending credentials
   expiresAt?: string | null
-  dataLimit?: number | null // bytes, null = unlimited
-  dataUsed: number // bytes
+  dataLimit?: number | null   // bytes, null = unlimited
+  dataUsed: number            // bytes
   uploadBytes: number
   downloadBytes: number
   createdAt: string
   lastSeen?: string | null
   connectedSince?: string | null
-  config?: string
+  config?: string             // kept for backward compat (= configs[protocol])
   qrCode?: string
   tags?: string[]
   note?: string
@@ -75,16 +81,18 @@ export const useVpnStore = defineStore('vpn', {
   getters: {
     filteredClients: (state) => {
       if (state.selectedProtocol === 'all') return state.clients
-      return state.clients.filter(c => c.protocol === state.selectedProtocol)
+      return state.clients.filter(c => c.protocols.includes(state.selectedProtocol as Protocol))
     },
-    activeClients: (state) => state.clients.filter(c => c.status === 'active'),
-    onlineClients: (state) => state.clients.filter(c => c.connectedSince),
-    totalDownload: (state) => state.clients.reduce((sum, c) => sum + c.downloadBytes, 0),
-    totalUpload: (state) => state.clients.reduce((sum, c) => sum + c.uploadBytes, 0),
+    activeClients:  (state) => state.clients.filter(c => c.status === 'active'),
+    onlineClients:  (state) => state.clients.filter(c => c.connectedSince),
+    totalDownload:  (state) => state.clients.reduce((sum, c) => sum + c.downloadBytes, 0),
+    totalUpload:    (state) => state.clients.reduce((sum, c) => sum + c.uploadBytes, 0),
     clientsByProtocol: (state) => {
       const map: Record<string, number> = {}
       state.clients.forEach(c => {
-        map[c.protocol] = (map[c.protocol] || 0) + 1
+        c.protocols.forEach(p => {
+          map[p] = (map[p] || 0) + 1
+        })
       })
       return map
     },
@@ -112,10 +120,22 @@ export const useVpnStore = defineStore('vpn', {
     },
 
     async addClient(data: Partial<VpnClient>) {
+      const protocols: Protocol[] = data.protocols?.length
+        ? data.protocols
+        : [data.protocol || 'openvpn']
+
+      const configs: Partial<Record<Protocol, string>> = {}
+      protocols.forEach(p => {
+        configs[p] = generateMockConfig(p, data.name || 'New Client')
+      })
+
       const newClient: VpnClient = {
         id: crypto.randomUUID(),
         name: data.name || 'New Client',
-        protocol: data.protocol || 'openvpn',
+        protocol: protocols[0],
+        protocols,
+        configs,
+        config: configs[protocols[0]],
         status: 'active',
         dataUsed: 0,
         uploadBytes: 0,
@@ -124,11 +144,11 @@ export const useVpnStore = defineStore('vpn', {
         expiresAt: data.expiresAt || null,
         dataLimit: data.dataLimit || null,
         email: data.email,
+        telegram: data.telegram,
         note: data.note,
         tags: data.tags || [],
         ipAddress: `10.8.0.${Math.floor(Math.random() * 200) + 10}`,
         uuid: crypto.randomUUID(),
-        config: generateMockConfig(data.protocol || 'openvpn', data.name || 'New Client'),
       }
       this.clients.unshift(newClient)
       return newClient
@@ -137,7 +157,19 @@ export const useVpnStore = defineStore('vpn', {
     async updateClient(id: string, data: Partial<VpnClient>) {
       const idx = this.clients.findIndex(c => c.id === id)
       if (idx !== -1) {
-        this.clients[idx] = { ...this.clients[idx], ...data }
+        const updated = { ...this.clients[idx], ...data }
+        // regenerate configs if protocols changed
+        if (data.protocols) {
+          updated.protocol = data.protocols[0]
+          updated.protocols = data.protocols
+          data.protocols.forEach(p => {
+            if (!updated.configs[p]) {
+              updated.configs[p] = generateMockConfig(p, updated.name)
+            }
+          })
+          updated.config = updated.configs[updated.protocol]
+        }
+        this.clients[idx] = updated
       }
     },
 
@@ -200,25 +232,37 @@ export const useVpnStore = defineStore('vpn', {
 // ─── Mock Data Generators ────────────────────────────────────────────────────
 
 function generateMockClients(): VpnClient[] {
-  const protocols: Protocol[] = ['openvpn', 'wireguard', 'vmess', 'vless', 'trojan', 'shadowsocks']
+  const allProtocols: Protocol[] = ['openvpn', 'wireguard', 'vmess', 'vless', 'trojan', 'shadowsocks']
   const names = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry', 'Iris', 'Jack',
     'Kate', 'Liam', 'Mia', 'Noah', 'Olivia', 'Paul', 'Quinn', 'Rachel', 'Sam', 'Tina']
   const statuses: VpnClient['status'][] = ['active', 'active', 'active', 'inactive', 'expired', 'disabled']
 
   return names.map((name, i) => {
-    const protocol = protocols[i % protocols.length]
     const status = statuses[Math.floor(Math.random() * statuses.length)]
     const isOnline = status === 'active' && Math.random() > 0.5
     const upload = Math.floor(Math.random() * 5 * 1024 * 1024 * 1024)
     const download = Math.floor(Math.random() * 20 * 1024 * 1024 * 1024)
 
+    // assign 1–3 random protocols
+    const shuffled = [...allProtocols].sort(() => Math.random() - 0.5)
+    const count = Math.floor(Math.random() * 3) + 1
+    const protocols = shuffled.slice(0, count) as Protocol[]
+    const protocol = protocols[0]
+
+    const configs: Partial<Record<Protocol, string>> = {}
+    protocols.forEach(p => { configs[p] = generateMockConfig(p, name) })
+
     return {
       id: crypto.randomUUID(),
       name,
       protocol,
+      protocols,
+      configs,
+      config: configs[protocol],
       status,
       ipAddress: `10.8.0.${i + 2}`,
       email: `${name.toLowerCase()}@example.com`,
+      telegram: Math.random() > 0.5 ? `@${name.toLowerCase()}_vpn` : undefined,
       uuid: crypto.randomUUID(),
       expiresAt: Math.random() > 0.5 ? new Date(Date.now() + Math.random() * 90 * 86400000).toISOString() : null,
       dataLimit: Math.random() > 0.5 ? Math.floor(Math.random() * 100) * 1024 * 1024 * 1024 : null,
@@ -228,7 +272,6 @@ function generateMockClients(): VpnClient[] {
       createdAt: new Date(Date.now() - Math.random() * 180 * 86400000).toISOString(),
       lastSeen: isOnline ? new Date().toISOString() : new Date(Date.now() - Math.random() * 7 * 86400000).toISOString(),
       connectedSince: isOnline ? new Date(Date.now() - Math.random() * 3600000).toISOString() : null,
-      config: generateMockConfig(protocol, name),
       tags: Math.random() > 0.7 ? ['premium'] : [],
       note: Math.random() > 0.8 ? 'VIP client' : '',
     }
@@ -268,12 +311,12 @@ function generateTrafficHistory(): TrafficPoint[] {
 
 function generateMockServers(): VpnServer[] {
   return [
-    { id: '1', name: 'OpenVPN UDP', protocol: 'openvpn', host: '0.0.0.0', port: 1194, status: 'running', clients: 8, maxClients: 100 },
-    { id: '2', name: 'OpenVPN TCP', protocol: 'openvpn', host: '0.0.0.0', port: 443, status: 'running', clients: 3, maxClients: 100 },
-    { id: '3', name: 'WireGuard', protocol: 'wireguard', host: '0.0.0.0', port: 51820, status: 'running', clients: 5, maxClients: 50 },
-    { id: '4', name: 'V2Ray VMess', protocol: 'vmess', host: '0.0.0.0', port: 10086, status: 'running', clients: 4, maxClients: 200 },
-    { id: '5', name: 'VLESS Reality', protocol: 'vless', host: '0.0.0.0', port: 443, status: 'stopped', clients: 0, maxClients: 200 },
-    { id: '6', name: 'Trojan-GFW', protocol: 'trojan', host: '0.0.0.0', port: 8443, status: 'running', clients: 2, maxClients: 100 },
+    { id: '1', name: 'OpenVPN UDP',   protocol: 'openvpn',     host: '0.0.0.0', port: 1194,  status: 'running', clients: 8,  maxClients: 100 },
+    { id: '2', name: 'OpenVPN TCP',   protocol: 'openvpn',     host: '0.0.0.0', port: 443,   status: 'running', clients: 3,  maxClients: 100 },
+    { id: '3', name: 'WireGuard',     protocol: 'wireguard',   host: '0.0.0.0', port: 51820, status: 'running', clients: 5,  maxClients: 50  },
+    { id: '4', name: 'V2Ray VMess',   protocol: 'vmess',       host: '0.0.0.0', port: 10086, status: 'running', clients: 4,  maxClients: 200 },
+    { id: '5', name: 'VLESS Reality', protocol: 'vless',       host: '0.0.0.0', port: 443,   status: 'stopped', clients: 0,  maxClients: 200 },
+    { id: '6', name: 'Trojan-GFW',   protocol: 'trojan',      host: '0.0.0.0', port: 8443,  status: 'running', clients: 2,  maxClients: 100 },
   ]
 }
 
@@ -297,7 +340,7 @@ function generateMockLogs(): string[] {
   return entries
 }
 
-function generateMockConfig(protocol: Protocol, name: string): string {
+export function generateMockConfig(protocol: Protocol, name: string): string {
   if (protocol === 'openvpn') {
     return `client
 dev tun
@@ -326,17 +369,31 @@ Endpoint = vpn.example.com:51820
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25`
   }
-  return `{
-  "v": "2",
-  "ps": "${name}",
-  "add": "vpn.example.com",
-  "port": "10086",
-  "id": "<UUID>",
-  "aid": "0",
-  "net": "ws",
-  "type": "none",
-  "host": "vpn.example.com",
-  "path": "/ray",
-  "tls": "tls"
-}`
+  if (protocol === 'shadowsocks') {
+    return JSON.stringify({
+      server: 'vpn.example.com',
+      server_port: 8388,
+      password: `ss-${name.toLowerCase()}-${Math.random().toString(36).slice(2, 8)}`,
+      method: 'aes-256-gcm',
+      remarks: name,
+    }, null, 2)
+  }
+  if (protocol === 'trojan') {
+    return `trojan://<PASSWORD>@vpn.example.com:8443?sni=vpn.example.com#${encodeURIComponent(name)}`
+  }
+  // vmess / vless / default
+  return JSON.stringify({
+    v: '2',
+    ps: name,
+    add: 'vpn.example.com',
+    port: protocol === 'vless' ? '443' : '10086',
+    id: '<UUID>',
+    aid: '0',
+    net: 'ws',
+    type: 'none',
+    host: 'vpn.example.com',
+    path: '/ray',
+    tls: 'tls',
+    protocol,
+  }, null, 2)
 }
