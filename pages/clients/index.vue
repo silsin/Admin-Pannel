@@ -26,7 +26,7 @@
     <div class="card p-4">
       <div class="flex flex-col sm:flex-row gap-3">
         <div class="relative flex-1">
-          <svg class="absolute top-1/2 -translate-y-1/2 w-4 h-4 text-dark-500"
+          <svg class="absolute top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
             :class="isRTL ? 'right-3' : 'left-3'"
             fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -62,8 +62,8 @@
 
     <!-- Bulk actions bar -->
     <div v-if="selected.length"
-      class="flex items-center gap-3 p-3 bg-primary-600/10 border border-primary-600/30 rounded-xl">
-      <span class="text-sm text-primary-400 font-medium">
+      class="flex items-center gap-3 p-3 bg-primary-50 border border-primary-200 rounded-xl">
+      <span class="text-sm text-primary-700 font-medium">
         {{ $t('clients.selected', { count: selected.length }) }}
       </span>
       <div class="flex items-center gap-2 ms-auto">
@@ -97,23 +97,23 @@
             <td colspan="9" class="text-center py-12"><LoadingSpinner /></td>
           </tr>
           <tr v-else-if="!filteredClients.length">
-            <td colspan="9" class="text-center py-12 text-dark-500">{{ $t('common.noData') }}</td>
+            <td colspan="9" class="text-center py-12 text-slate-500">{{ $t('common.noData') }}</td>
           </tr>
 
           <template v-for="client in filteredClients" :key="client.id">
             <!-- Main row -->
-            <tr :class="expandedRows.includes(client.id) ? 'bg-dark-800/60' : ''">
+            <tr :class="expandedRows.includes(client.id) ? 'bg-slate-50' : ''">
               <td>
-                <input type="checkbox" class="rounded" :value="client.id" v-model="selected" />
+                <input type="checkbox" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500" :value="client.id" v-model="selected" />
               </td>
               <td>
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-primary-600/20 flex items-center justify-center text-xs font-bold text-primary-400 flex-shrink-0">
+                  <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600 flex-shrink-0">
                     {{ client.name[0] }}
                   </div>
                   <div class="min-w-0">
-                    <p class="font-medium text-dark-200 truncate max-w-[120px]">{{ client.name }}</p>
-                    <p class="text-xs text-dark-500 truncate max-w-[120px]">{{ client.email }}</p>
+                    <p class="font-medium text-slate-800 truncate max-w-[120px]">{{ client.name }}</p>
+                    <p class="text-xs text-slate-500 truncate max-w-[120px]">{{ client.email }}</p>
                   </div>
                 </div>
               </td>
@@ -129,16 +129,16 @@
                   <span :class="fmt.statusBadgeClass(client.status)">{{ client.status }}</span>
                 </div>
               </td>
-              <td class="font-mono text-xs text-dark-400" dir="ltr">{{ client.ipAddress || '—' }}</td>
+              <td class="font-mono text-xs text-gray-500" dir="ltr">{{ client.ipAddress || '—' }}</td>
               <td>
                 <div>
-                  <p class="text-sm">{{ fmt.formatBytes(client.dataUsed) }}</p>
+                  <p class="text-sm text-gray-700">{{ fmt.formatBytes(client.dataUsed) }}</p>
                   <div v-if="client.dataLimit" class="mt-1">
                     <div class="progress-bar w-20">
                       <div class="progress-fill bg-primary-500"
                         :style="{ width: fmt.percentOf(client.dataUsed, client.dataLimit) + '%' }" />
                     </div>
-                    <p class="text-xs text-dark-500 mt-0.5">
+                    <p class="text-xs text-gray-500 mt-0.5">
                       {{ fmt.percentOf(client.dataUsed, client.dataLimit) }}% of {{ fmt.formatBytes(client.dataLimit) }}
                     </p>
                   </div>
@@ -146,14 +146,14 @@
               </td>
               <td>
                 <span v-if="client.expiresAt"
-                  :class="isExpiringSoon(client.expiresAt) ? 'text-yellow-400' : 'text-dark-400'"
+                  :class="isExpiringSoon(client.expiresAt) ? 'text-amber-600' : 'text-gray-600'"
                   class="text-xs">
                   {{ fmt.formatDate(client.expiresAt) }}
                 </span>
-                <span v-else class="text-xs text-dark-500">{{ $t('common.never') }}</span>
+                <span v-else class="text-xs text-gray-500">{{ $t('common.never') }}</span>
               </td>
-              <td class="text-dark-400 text-xs">
-                <span v-if="client.connectedSince" class="text-emerald-400">
+              <td class="text-gray-500 text-xs">
+                <span v-if="client.connectedSince" class="text-emerald-600 font-medium">
                   {{ $t('clients.connectedFor', { duration: fmt.formatDuration(client.connectedSince) }) }}
                 </span>
                 <span v-else>{{ fmt.formatRelative(client.lastSeen) }}</span>
@@ -163,7 +163,7 @@
                   <!-- Expand configs -->
                   <button @click="toggleExpand(client.id)"
                     class="btn-ghost btn-sm p-1.5"
-                    :class="expandedRows.includes(client.id) ? 'text-primary-400' : ''"
+                    :class="expandedRows.includes(client.id) ? 'text-primary-600' : ''"
                     :title="$t('clients.showConfigs')">
                     <svg class="w-4 h-4 transition-transform duration-200"
                       :class="expandedRows.includes(client.id) ? 'rotate-180' : ''"
@@ -191,7 +191,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </button>
-                  <button @click="confirmDelete(client)" class="btn-ghost btn-sm p-1.5 text-red-400 hover:text-red-300" :title="$t('common.delete')">
+                  <button @click="confirmDelete(client)" class="btn-ghost btn-sm p-1.5 text-red-500 hover:text-red-600" :title="$t('common.delete')">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
@@ -202,22 +202,22 @@
 
             <!-- Expandable config row -->
             <Transition name="expand-row">
-              <tr v-if="expandedRows.includes(client.id)" class="bg-dark-800/30">
+              <tr v-if="expandedRows.includes(client.id)" class="bg-gray-50/50">
                 <td colspan="9" class="px-4 py-3">
                   <div class="flex flex-wrap gap-2 items-center">
-                    <span class="text-xs text-dark-500 me-1">{{ $t('clients.downloadConfig') }}:</span>
+                    <span class="text-xs text-gray-500 me-1">{{ $t('clients.downloadConfig') }}:</span>
                     <button
                       v-for="p in client.protocols" :key="p"
                       @click="downloadClientConfig(client, p)"
-                      :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all hover:scale-105',
+                      :class="['flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all hover:scale-105 shadow-sm',
                         fmt.protocolBadgeClass(p).replace('badge','').trim(),
-                        'border-dark-600 hover:border-current bg-dark-800 hover:bg-dark-750']"
+                        'border-gray-200 hover:border-current bg-white hover:bg-gray-50']"
                     >
                       <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
                       {{ p }}
-                      <span class="text-dark-500">.{{ configExt(p) }}</span>
+                      <span class="text-gray-400">.{{ configExt(p) }}</span>
                     </button>
 
                     <!-- Quick send -->
@@ -239,12 +239,18 @@
     </div>
 
     <!-- Footer -->
-    <div class="flex items-center justify-between text-sm text-dark-400">
+    <div class="flex items-center justify-between text-sm text-gray-500">
       <span>{{ $t('clients.showingOf', { shown: filteredClients.length, total: vpn.clients.length }) }}</span>
     </div>
 
     <!-- Modals -->
-    <ClientAddModal  v-if="showAddModal"    @close="showAddModal = false"   @saved="onClientSaved" />
+    <ClientAddModal  v-if="showAddModal"    @close="showAddModal = false"   @saved="onClientCreated" />
+    <ClientCreatedModal
+      v-if="newlyCreatedClient"
+      :client="newlyCreatedClient"
+      @close="newlyCreatedClient = null"
+      @createAnother="onCreateAnother"
+    />
     <ClientEditModal v-if="editingClient"   :client="editingClient"         @close="editingClient = null" @saved="onClientSaved" />
     <ClientViewModal v-if="viewingClient"   :client="viewingClient"         @close="viewingClient = null" />
     <ConfirmModal
@@ -277,6 +283,7 @@ const showAddModal = ref(false)
 const editingClient = ref<VpnClient | null>(null)
 const viewingClient = ref<VpnClient | null>(null)
 const deletingClient = ref<VpnClient | null>(null)
+const newlyCreatedClient = ref<VpnClient | null>(null)
 const expandedRows = ref<string[]>([])
 
 // ─── Filtering ────────────────────────────────────────────────────────────
@@ -376,10 +383,20 @@ async function bulkDelete() {
   selected.value = []
 }
 
+function onClientCreated(client: VpnClient) {
+  showAddModal.value = false
+  newlyCreatedClient.value = client
+}
+
 function onClientSaved() {
   showAddModal.value = false
   editingClient.value = null
   notif.success(t('common.save'), t('clients.saved'))
+}
+
+function onCreateAnother() {
+  newlyCreatedClient.value = null
+  showAddModal.value = true
 }
 </script>
 

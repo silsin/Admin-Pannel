@@ -2,7 +2,7 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal w-full max-w-xl">
       <div class="modal-header">
-        <h3 class="font-semibold text-dark-100">{{ $t('clients.addClient') }}</h3>
+        <h3 class="font-semibold text-gray-900">{{ $t('clients.addClient') }}</h3>
         <button @click="$emit('close')" class="btn-ghost btn-sm p-1.5">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -31,9 +31,8 @@
 
         <!-- Multi-Protocol -->
         <div>
-          <label class="label">
-            {{ $t('clients.protocols') }} <span class="text-red-400">*</span>
-            <span class="text-xs text-dark-500 font-normal ms-2">{{ $t('clients.protocolsHint') }}</span>
+          <label class="label text-gray-600">{{ $t('clients.protocols') }} <span class="text-red-500">*</span>
+            <span class="text-xs text-gray-500 font-normal ms-2">{{ $t('clients.protocolsHint') }}</span>
           </label>
           <div class="grid grid-cols-3 gap-2">
             <button
@@ -42,8 +41,8 @@
               @click="toggleProtocol(p.value)"
               :class="['px-3 py-2 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1.5',
                 form.protocols.includes(p.value)
-                  ? 'border-primary-500 bg-primary-600/20 text-primary-300'
-                  : 'border-dark-600 bg-dark-800 text-dark-400 hover:border-dark-500']"
+                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
+                  : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400 hover:bg-gray-50']"
             >
               <svg v-if="form.protocols.includes(p.value)" class="w-3 h-3 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -51,7 +50,7 @@
               {{ p.label }}
             </button>
           </div>
-          <p v-if="!form.protocols.length" class="text-xs text-red-400 mt-1">{{ $t('clients.protocolRequired') }}</p>
+          <p v-if="!form.protocols.length" class="text-xs text-red-500 mt-1">{{ $t('clients.protocolRequired') }}</p>
         </div>
 
         <!-- Data limit + expiry -->
@@ -61,7 +60,7 @@
             <div class="flex gap-2">
               <input v-model.number="form.dataLimitGB" type="number" class="input flex-1"
                 :placeholder="$t('clients.dataLimitHint')" min="0" />
-              <span class="flex items-center text-sm text-dark-400 px-2">GB</span>
+              <span class="flex items-center text-sm text-gray-500 px-2">GB</span>
             </div>
           </div>
           <div>
@@ -78,36 +77,36 @@
         </div>
 
         <!-- ─── Send Credentials ──────────────────────────────────────── -->
-        <div class="border border-dark-700 rounded-xl p-4 space-y-3 bg-dark-800/50">
+        <div class="border border-gray-200 rounded-xl p-4 space-y-3 bg-gray-50">
           <div class="flex items-center justify-between">
-            <p class="text-sm font-medium text-dark-200">{{ $t('clients.sendCredentials') }}</p>
-            <span class="text-xs text-dark-500">{{ $t('clients.optional') }}</span>
+            <p class="text-sm font-medium text-gray-800">{{ $t('clients.sendCredentials') }}</p>
+            <span class="text-xs text-gray-500">{{ $t('clients.optional') }}</span>
           </div>
 
           <!-- Email -->
           <div class="flex items-center gap-3">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" v-model="form.sendEmail" class="rounded accent-primary-500" />
-              <span class="text-sm text-dark-300">{{ $t('clients.sendViaEmail') }}</span>
+              <input type="checkbox" v-model="form.sendEmail" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+              <span class="text-sm text-gray-700">{{ $t('clients.sendViaEmail') }}</span>
             </label>
           </div>
           <div v-if="form.sendEmail" class="ps-6">
             <input v-model="form.sendEmailAddr" type="email" class="input"
               :placeholder="form.email || 'recipient@example.com'" dir="ltr" />
-            <p class="text-xs text-dark-500 mt-1">{{ $t('clients.emailLeaveBlank') }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ $t('clients.emailLeaveBlank') }}</p>
           </div>
 
           <!-- Telegram -->
           <div class="flex items-center gap-3">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" v-model="form.sendTelegram" class="rounded accent-primary-500" />
-              <span class="text-sm text-dark-300">{{ $t('clients.sendViaTelegram') }}</span>
+              <input type="checkbox" v-model="form.sendTelegram" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+              <span class="text-sm text-gray-700">{{ $t('clients.sendViaTelegram') }}</span>
             </label>
           </div>
           <div v-if="form.sendTelegram" class="ps-6">
             <input v-model="form.sendTelegramUser" type="text" class="input"
               :placeholder="form.telegram || '@username'" dir="ltr" />
-            <p class="text-xs text-dark-500 mt-1">{{ $t('clients.telegramLeaveBlank') }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ $t('clients.telegramLeaveBlank') }}</p>
           </div>
         </div>
       </div>

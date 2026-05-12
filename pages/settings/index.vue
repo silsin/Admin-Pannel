@@ -6,18 +6,18 @@
     </div>
 
     <!-- Tabs -->
-    <div class="flex gap-1 p-1 bg-dark-800 rounded-xl w-fit flex-wrap">
+    <div class="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit flex-wrap border border-gray-200">
       <button v-for="tab in tabs" :key="tab.key"
         @click="activeTab = tab.key"
         :class="['px-4 py-2 rounded-lg text-sm font-medium transition-all',
-          activeTab === tab.key ? 'bg-dark-700 text-dark-100' : 'text-dark-400 hover:text-dark-200']">
+          activeTab === tab.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50']">
         {{ tab.label }}
       </button>
     </div>
 
     <!-- General -->
     <div v-if="activeTab === 'general'" class="card space-y-5">
-      <h3 class="font-semibold text-dark-100">{{ $t('settings.general') }}</h3>
+      <h3 class="font-semibold text-gray-900">{{ $t('settings.general') }}</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="label">{{ $t('settings.serverName') }}</label>
@@ -48,21 +48,21 @@
       <div class="divider" />
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm font-medium text-dark-200">{{ $t('settings.autoRefresh') }}</p>
-          <p class="text-xs text-dark-500">{{ $t('settings.autoRefreshDesc') }}</p>
+          <p class="text-sm font-medium text-gray-800">{{ $t('settings.autoRefresh') }}</p>
+          <p class="text-xs text-gray-500">{{ $t('settings.autoRefreshDesc') }}</p>
         </div>
         <ToggleSwitch v-model="settings.autoRefresh" />
       </div>
       <div v-if="settings.autoRefresh" class="flex items-center gap-4">
         <label class="label mb-0 w-48">{{ $t('settings.refreshInterval') }}</label>
         <input v-model.number="settings.refreshInterval" type="number" class="input w-24" min="5" max="300" />
-        <span class="text-sm text-dark-400">{{ $t('settings.seconds') }}</span>
+        <span class="text-sm text-gray-500">{{ $t('settings.seconds') }}</span>
       </div>
     </div>
 
     <!-- VPN Defaults -->
     <div v-if="activeTab === 'vpn'" class="card space-y-5">
-      <h3 class="font-semibold text-dark-100">{{ $t('settings.vpnDefaults') }}</h3>
+      <h3 class="font-semibold text-gray-900">{{ $t('settings.vpnDefaults') }}</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="label">{{ $t('settings.defaultDataLimit') }}</label>
@@ -97,11 +97,11 @@
 
     <!-- Security -->
     <div v-if="activeTab === 'security'" class="card space-y-5">
-      <h3 class="font-semibold text-dark-100">{{ $t('settings.security') }}</h3>
+      <h3 class="font-semibold text-gray-900">{{ $t('settings.security') }}</h3>
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm font-medium text-dark-200">{{ $t('settings.twoFactor') }}</p>
-          <p class="text-xs text-dark-500">{{ $t('settings.twoFactorDesc') }}</p>
+          <p class="text-sm font-medium text-gray-800">{{ $t('settings.twoFactor') }}</p>
+          <p class="text-xs text-gray-500">{{ $t('settings.twoFactorDesc') }}</p>
         </div>
         <ToggleSwitch v-model="settings.twoFactorAuth" />
       </div>
@@ -124,14 +124,14 @@
 
     <!-- Notifications -->
     <div v-if="activeTab === 'notifications'" class="card space-y-5">
-      <h3 class="font-semibold text-dark-100">{{ $t('settings.notifications') }}</h3>
+      <h3 class="font-semibold text-gray-900">{{ $t('settings.notifications') }}</h3>
 
       <!-- Telegram -->
       <div>
         <div class="flex items-center justify-between mb-3">
           <div>
-            <p class="text-sm font-medium text-dark-200">{{ $t('settings.telegram') }}</p>
-            <p class="text-xs text-dark-500">{{ $t('settings.telegramDesc') }}</p>
+            <p class="text-sm font-medium text-gray-800">{{ $t('settings.telegram') }}</p>
+            <p class="text-xs text-gray-500">{{ $t('settings.telegramDesc') }}</p>
           </div>
           <ToggleSwitch v-model="settings.telegramNotifications" />
         </div>

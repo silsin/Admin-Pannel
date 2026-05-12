@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-1.5">
     <div class="flex items-center justify-between text-xs">
-      <span class="text-dark-400">{{ label }}</span>
-      <span class="text-dark-300 font-mono">{{ display }}</span>
+      <span class="text-gray-500">{{ label }}</span>
+      <span class="text-gray-700 font-mono">{{ display }}</span>
     </div>
     <div class="progress-bar">
       <div :class="['progress-fill', fillClass]" :style="{ width: pct + '%' }" />

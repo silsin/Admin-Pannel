@@ -2,6 +2,16 @@ import { defineStore } from 'pinia'
 
 export type Protocol = 'openvpn' | 'wireguard' | 'vmess' | 'vless' | 'trojan' | 'shadowsocks' | 'ssr'
 
+/** Per-user wallet line item: instant-generated config with reserved bandwidth from wallet */
+export interface WalletConfigEntry {
+  id: string
+  label: string
+  protocol: Protocol
+  reservedBytes: number
+  config: string
+  createdAt: string
+}
+
 export interface VpnClient {
   id: string
   name: string
@@ -31,6 +41,10 @@ export interface VpnClient {
   qrCode?: string
   tags?: string[]
   note?: string
+  subscriptionToken?: string  // NEW: unique token for subscription page
+  /** Spendable bytes in wallet mode (split across on-demand configs) */
+  walletBalanceBytes: number
+  walletConfigs: WalletConfigEntry[]
 }
 
 export interface ServerStats {
@@ -129,6 +143,9 @@ export const useVpnStore = defineStore('vpn', {
         configs[p] = generateMockConfig(p, data.name || 'New Client')
       })
 
+      const limit = data.dataLimit != null && data.dataLimit > 0 ? data.dataLimit : null
+      const walletBalanceBytes = limit != null ? limit : 50 * 1024 * 1024 * 1024
+
       const newClient: VpnClient = {
         id: crypto.randomUUID(),
         name: data.name || 'New Client',
@@ -149,9 +166,60 @@ export const useVpnStore = defineStore('vpn', {
         tags: data.tags || [],
         ipAddress: `10.8.0.${Math.floor(Math.random() * 200) + 10}`,
         uuid: crypto.randomUUID(),
+        subscriptionToken: generateSubscriptionToken(),
+        walletBalanceBytes,
+        walletConfigs: [],
       }
       this.clients.unshift(newClient)
       return newClient
+    },
+
+    /** Reserve bytes from wallet and add a downloadable config immediately */
+    createWalletConfig(
+      clientId: string,
+      protocol: Protocol,
+      reservedBytes: number,
+      label?: string,
+    ): { ok: true; entry: WalletConfigEntry } | { ok: false; reason: 'not_found' | 'insufficient' | 'invalid_amount' } {
+      const client = this.clients.find(c => c.id === clientId)
+      if (!client) return { ok: false, reason: 'not_found' }
+      if (reservedBytes <= 0) return { ok: false, reason: 'invalid_amount' }
+      if (reservedBytes > client.walletBalanceBytes) return { ok: false, reason: 'insufficient' }
+
+      const id = crypto.randomUUID()
+      const short = id.slice(0, 8)
+      const entry: WalletConfigEntry = {
+        id,
+        label: label?.trim() || `Wallet #${client.walletConfigs.length + 1}`,
+        protocol,
+        reservedBytes,
+        config: generateMockConfig(protocol, `${client.name}-w-${short}`),
+        createdAt: new Date().toISOString(),
+      }
+      client.walletBalanceBytes -= reservedBytes
+      client.walletConfigs.unshift(entry)
+      return { ok: true, entry }
+    },
+
+    removeWalletConfig(clientId: string, entryId: string): boolean {
+      const client = this.clients.find(c => c.id === clientId)
+      if (!client) return false
+      const idx = client.walletConfigs.findIndex(e => e.id === entryId)
+      if (idx === -1) return false
+      const [removed] = client.walletConfigs.splice(idx, 1)
+      client.walletBalanceBytes += removed.reservedBytes
+      return true
+    },
+
+    getClientBySubscriptionToken(token: string): VpnClient | undefined {
+      return this.clients.find(c => c.subscriptionToken === token)
+    },
+
+    async fetchClientByToken(token: string): Promise<VpnClient | null> {
+      // In real app, this would be an API call
+      await new Promise(r => setTimeout(r, 300))
+      const client = this.clients.find(c => c.subscriptionToken === token)
+      return client || null
     },
 
     async updateClient(id: string, data: Partial<VpnClient>) {
@@ -252,6 +320,12 @@ function generateMockClients(): VpnClient[] {
     const configs: Partial<Record<Protocol, string>> = {}
     protocols.forEach(p => { configs[p] = generateMockConfig(p, name) })
 
+    const dataLimitBytes = Math.random() > 0.5 ? Math.floor(Math.random() * 100) * 1024 * 1024 * 1024 : null
+    const dataUsedVal = upload + download
+    const walletBalanceBytes = dataLimitBytes != null
+      ? Math.max(0, dataLimitBytes - dataUsedVal)
+      : Math.floor(20 + Math.random() * 60) * 1024 * 1024 * 1024
+
     return {
       id: crypto.randomUUID(),
       name,
@@ -264,9 +338,10 @@ function generateMockClients(): VpnClient[] {
       email: `${name.toLowerCase()}@example.com`,
       telegram: Math.random() > 0.5 ? `@${name.toLowerCase()}_vpn` : undefined,
       uuid: crypto.randomUUID(),
+      subscriptionToken: generateSubscriptionToken(),
       expiresAt: Math.random() > 0.5 ? new Date(Date.now() + Math.random() * 90 * 86400000).toISOString() : null,
-      dataLimit: Math.random() > 0.5 ? Math.floor(Math.random() * 100) * 1024 * 1024 * 1024 : null,
-      dataUsed: upload + download,
+      dataLimit: dataLimitBytes,
+      dataUsed: dataUsedVal,
       uploadBytes: upload,
       downloadBytes: download,
       createdAt: new Date(Date.now() - Math.random() * 180 * 86400000).toISOString(),
@@ -274,6 +349,8 @@ function generateMockClients(): VpnClient[] {
       connectedSince: isOnline ? new Date(Date.now() - Math.random() * 3600000).toISOString() : null,
       tags: Math.random() > 0.7 ? ['premium'] : [],
       note: Math.random() > 0.8 ? 'VIP client' : '',
+      walletBalanceBytes,
+      walletConfigs: [] as WalletConfigEntry[],
     }
   })
 }
@@ -396,4 +473,16 @@ PersistentKeepalive = 25`
     tls: 'tls',
     protocol,
   }, null, 2)
+}
+
+// ─── Subscription Token Generator ────────────────────────────────────────────
+
+function generateSubscriptionToken(): string {
+  // Generate a random 16-character alphanumeric token
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let token = ''
+  for (let i = 0; i < 16; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return token
 }

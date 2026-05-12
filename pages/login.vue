@@ -1,16 +1,16 @@
 <template>
   <div class="w-full max-w-md relative z-10" :dir="isRTL ? 'rtl' : 'ltr'">
-    <div class="card shadow-2xl">
+    <div class="card shadow-xl">
       <!-- Header -->
       <div class="text-center mb-8">
-        <div class="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 glow">
+        <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
           <svg class="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
         </div>
-        <h1 class="text-2xl font-bold text-dark-100">{{ $t('auth.title') }}</h1>
-        <p class="text-dark-400 text-sm mt-1">{{ $t('auth.subtitle') }}</p>
+        <h1 class="text-2xl font-bold text-gray-900">{{ $t('auth.title') }}</h1>
+        <p class="text-gray-500 text-sm mt-1">{{ $t('auth.subtitle') }}</p>
       </div>
 
       <!-- Form -->
@@ -43,7 +43,7 @@
               type="button"
               @click="showPassword = !showPassword"
               :class="[
-                'absolute top-1/2 -translate-y-1/2 text-dark-500 hover:text-dark-300',
+                'absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600',
                 isRTL ? 'left-3' : 'right-3',
               ]"
             >
@@ -62,12 +62,12 @@
         </div>
 
         <!-- Error -->
-        <div v-if="error" class="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-          <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div v-if="error" class="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <svg class="w-4 h-4 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p class="text-sm text-red-400">{{ error }}</p>
+          <p class="text-sm text-red-600">{{ error }}</p>
         </div>
 
         <button type="submit" class="btn-primary w-full justify-center py-2.5" :disabled="loading">
@@ -80,10 +80,10 @@
       </form>
 
       <!-- Footer -->
-      <div class="flex items-center justify-between mt-6 pt-4 border-t border-dark-700">
-        <p class="text-xs text-dark-600">
+      <div class="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+        <p class="text-xs text-gray-500">
           {{ $t('auth.defaultCredentials') }}:
-          <span class="text-dark-400 font-mono">admin / admin</span>
+          <span class="text-gray-700 font-mono">admin / admin</span>
         </p>
         <LangSwitcher />
       </div>

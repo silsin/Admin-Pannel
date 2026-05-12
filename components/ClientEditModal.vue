@@ -2,7 +2,7 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal w-full max-w-lg">
       <div class="modal-header">
-        <h3 class="font-semibold text-dark-100">{{ $t('clients.editClient') }} — {{ client.name }}</h3>
+        <h3 class="font-semibold text-gray-900">{{ $t('clients.editClient') }} — {{ client.name }}</h3>
         <button @click="$emit('close')" class="btn-ghost btn-sm p-1.5">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

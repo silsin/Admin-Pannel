@@ -15,21 +15,21 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       <div v-for="server in vpn.servers" :key="server.id"
-        class="card hover:border-dark-600 transition-colors">
+        class="card hover:border-gray-300 transition-colors hover:shadow-md">
         <!-- Header -->
         <div class="flex items-start justify-between mb-4">
           <div class="flex items-center gap-3">
-            <div :class="['w-10 h-10 rounded-xl flex items-center justify-center',
-              server.status === 'running' ? 'bg-emerald-500/20' : 'bg-red-500/20']">
-              <svg class="w-5 h-5" :class="server.status === 'running' ? 'text-emerald-400' : 'text-red-400'"
+            <div :class="['w-10 h-10 rounded-xl flex items-center justify-center shadow-sm',
+              server.status === 'running' ? 'bg-emerald-100' : 'bg-red-100']">
+              <svg class="w-5 h-5" :class="server.status === 'running' ? 'text-emerald-600' : 'text-red-500'"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                   d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
               </svg>
             </div>
             <div>
-              <p class="font-semibold text-dark-100">{{ server.name }}</p>
-              <p class="text-xs text-dark-500 font-mono" dir="ltr">{{ server.host }}:{{ server.port }}</p>
+              <p class="font-semibold text-gray-900">{{ server.name }}</p>
+              <p class="text-xs text-gray-500 font-mono" dir="ltr">{{ server.host }}:{{ server.port }}</p>
             </div>
           </div>
           <span :class="fmt.statusBadgeClass(server.status)">{{ server.status }}</span>
@@ -37,15 +37,15 @@
 
         <!-- Stats -->
         <div class="grid grid-cols-2 gap-3 mb-4">
-          <div class="bg-dark-800 rounded-lg p-3">
-            <p class="text-xs text-dark-500 mb-1">{{ $t('common.protocol') }}</p>
+          <div class="bg-gray-50 border border-gray-100 rounded-lg p-3">
+            <p class="text-xs text-gray-500 mb-1">{{ $t('common.protocol') }}</p>
             <span :class="fmt.protocolBadgeClass(server.protocol)">{{ server.protocol }}</span>
           </div>
-          <div class="bg-dark-800 rounded-lg p-3">
-            <p class="text-xs text-dark-500 mb-1">{{ $t('servers.clients') }}</p>
-            <p class="text-sm font-semibold text-dark-200">
+          <div class="bg-gray-50 border border-gray-100 rounded-lg p-3">
+            <p class="text-xs text-gray-500 mb-1">{{ $t('servers.clients') }}</p>
+            <p class="text-sm font-semibold text-gray-800">
               {{ server.clients }}
-              <span v-if="server.maxClients" class="text-dark-500 font-normal">/ {{ server.maxClients }}</span>
+              <span v-if="server.maxClients" class="text-gray-500 font-normal">/ {{ server.maxClients }}</span>
             </p>
           </div>
         </div>
@@ -56,13 +56,13 @@
             <div class="progress-fill bg-primary-500"
               :style="{ width: Math.round((server.clients / server.maxClients) * 100) + '%' }" />
           </div>
-          <p class="text-xs text-dark-500 mt-1">
+          <p class="text-xs text-gray-500 mt-1">
             {{ Math.round((server.clients / server.maxClients) * 100) }}% {{ $t('servers.capacity') }}
           </p>
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center gap-2 pt-3 border-t border-dark-700">
+        <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
           <button v-if="server.status === 'running'"
             @click="restartServer(server.id)"
             class="btn-secondary btn-sm flex-1 justify-center"
